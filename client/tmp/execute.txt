@@ -1,1 +1,0 @@
-{"session_id":"0ab1eb55","task":"whoami","stdout":"cm9vdA==","stderr":"","returncode":0}
