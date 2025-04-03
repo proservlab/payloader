@@ -195,9 +195,3 @@ $client.Close()
 
 - **Network Security:**  
   Ensure that the network and systems are secure and that only trusted entities can connect to your server.
-
----
-
-## License
-
-Include your license information here.

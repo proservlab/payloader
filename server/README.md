@@ -116,11 +116,3 @@ The server runs a FastAPI application in the background (on port 8001) that prov
 ## Signal Handling and Shutdown
 
 The script registers a signal handler for SIGINT (Ctrl+C) to gracefully shut down the listener and any active worker tasks.
-
-## Contributing
-
-Contributions and enhancements are welcome. Feel free to fork the repository and submit pull requests.
-
-## License
-
-Include your license information here.

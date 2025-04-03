@@ -26,3 +26,11 @@ Payloader is a lightweight command and control (C2) framework designed to facili
 ## Disclaimer
 
 This project is intended for educational and research purposes only. Use responsibly and ensure you have proper authorization before deploying this framework.
+
+## Contributing
+
+Contributions and enhancements are welcome. Feel free to fork the repository and submit pull requests.
+
+## License
+
+This repository is licensed under the [MIT License](https://opensource.org/licenses/MIT). See the `LICENSE` file for more details.
