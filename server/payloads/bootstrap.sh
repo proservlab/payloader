@@ -1,0 +1,1 @@
+export PS1=''; decode_payload() { command=$(echo "$1" | base64 -d); output=$(eval "$command" | base64 -w0 2>&1); ret=$?; json=$(printf '{"session_id": "%s", "task": "%s", "stdout": "%s", "stderr": "", "returncode": %d}\n' "$SESSION_ID", "$TASK", "$(echo -n "$output")" "$ret"); echo $json 1>&2;}
