@@ -173,5 +173,6 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+**/tmp/*
 **/files/*
 !**/files/DO_NOT_DELETE
