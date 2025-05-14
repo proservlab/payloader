@@ -7,7 +7,7 @@ RUN apt-get update \
 
 # Copy the reverse shell script into the image
 WORKDIR /app
-COPY simple_client.sh /app/client.sh
+COPY client.sh /app/client.sh
 RUN chmod +x /app/client.sh
 
 CMD ["/app/client.sh"]

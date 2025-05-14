@@ -6,6 +6,7 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY ./payloads ./payloads
+COPY ./lacework-deploy-payloads ./lacework-deploy-payloads
 COPY ./server.py ./server.py
 COPY --chmod=755 reqs.sh /app
 
