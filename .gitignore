@@ -177,3 +177,5 @@ cython_debug/
 !**/tmp/DO_NOT_DELETE
 **/files/*
 !**/files/DO_NOT_DELETE
+
+*.json
