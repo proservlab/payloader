@@ -10,7 +10,7 @@ VERSION="0.0.1"
 cd $SCRIPT_PATH
 
 if [ -z $HOST ]; then
-    # HOST=$(curl -s http://ipv4.icanhazip.com)
+    # HOST=$(curl -s https://ipv4.icanhazip.com)
     HOST=$(hostname -I | awk '{print $1}')
 fi
 

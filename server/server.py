@@ -132,7 +132,7 @@ def get_self_ip():
     Get the public IP of the host by querying icanhazip.com.
     """
     result = subprocess.run(
-        ["/bin/bash", "-c", "curl -s http://ipv4.icanhazip.com"],
+        ["/bin/bash", "-c", "curl -s https://ipv4.icanhazip.com"],
         cwd="/tmp",
         capture_output=True,
         text=True,
