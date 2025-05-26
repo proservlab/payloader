@@ -1,3 +1,4 @@
 [submodule "server/lacework-deploy-payloads"]
     path = server/lacework-deploy-payloads
     url  = git@github.com:proservlab/lacework-deploy-payloads.git
+    branch = main
