@@ -26,7 +26,7 @@ endef
 deps:
 	@bash -c '\
 	  set -e; \
-	  echo "📦  Checking tools…"; \
+	  echo "📦  Checking tools..."; \
 	  pkg=""; OS=$$(uname -s); \
 	  if command -v apt-get >/dev/null;  then pkg="sudo apt-get install -y"; \
 	  elif command -v yum >/dev/null;     then pkg="sudo yum install -y"; \
@@ -39,7 +39,7 @@ deps:
 	      case $$yn in [Yy]*) echo \"→ Installing $$t\"; $$pkg $$t ;; *) echo \"Skipping $$t\" ;; esac; \
 	    fi; \
 	  done; \
-	  echo \"Installing PowerShell module PSScriptAnalyzer if missing…\"; \
+	  echo \"Installing PowerShell module PSScriptAnalyzer if missing...\"; \
 	  if command -v pwsh >/dev/null 2>&1; then \
 	    pwsh -NoLogo -Command '\
 	      if (-not (Get-Module -ListAvailable -Name PSScriptAnalyzer)) { \
@@ -53,7 +53,7 @@ deps:
 shellcheck:
 	$(call NEED_TOOL,shellcheck)
 	$(call NEED_TOOL,jq)
-	@echo "🔍  ShellCheck…"
+	@echo "🔍  ShellCheck..."
 	@set -e; \
 	if [ -z "$(SHELL_SCRIPTS)" ]; then echo "No Linux scripts." ; exit 0; fi; \
 	shellcheck -S error $(SHELL_SCRIPTS) --exclude=2148 -f json | \
@@ -72,7 +72,7 @@ shellcheck:
 .PHONY: pssa
 pssa:
 	$(call NEED_TOOL,pwsh)
-	@echo "🔍  PSScriptAnalyzer…"
+	@echo "🔍  PSScriptAnalyzer..."
 	@pwsh -NoLogo -Command '\
 	  $$ErrorActionPreference="Stop"; \
 	  $$scripts = "$(POWERSHELL_SCRIPTS)".Split(" ", [System.StringSplitOptions]::RemoveEmptyEntries); \
@@ -87,7 +87,7 @@ pssa:
 .PHONY: flake8
 flake8:
 	$(call NEED_TOOL,python3)
-	@echo "🔍  Python coverage…"
+	@echo "🔍  Python coverage..."
 	@bash -c '\
 	  set -eo pipefail; missing=(); \
 	  python3 -m venv venv > /dev/null 2>&1; \
