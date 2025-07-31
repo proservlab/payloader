@@ -2,8 +2,8 @@
 
 This directory contains the client-side reverse shell scripts that work in conjunction with the C2 server (located in the `server` directory). There are two scripts provided:
 
-- **client.sh** – for Linux/Unix systems  
-- **client.ps1** – for Windows systems
+- **client.sh** - for Linux/Unix systems  
+- **client.ps1** - for Windows systems
 
 Both scripts are designed to establish a reverse shell connection to the C2 server and receive payload commands. They also set an environment variable (`TASK`) that is used by the server to decide which payload to deliver.
 
